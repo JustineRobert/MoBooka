@@ -44,6 +44,8 @@ Supply `--endpoint` to target a custom callback URL.
 ## Support
 - Email: titechaafrica@gmail.com
 - Tel: +256782397907
+- Website support page: `/support`
+- Contact form endpoint: `POST /api/contact`
 
 ## Key APIs
 - `POST /api/auth/register`
@@ -52,4 +54,5 @@ Supply `--endpoint` to target a custom callback URL.
 - `POST /api/books` (author)
 - `POST /api/payments/initiate`
 - `POST /api/payments/verify`
+- `POST /api/contact`
 - `GET /api/admin/reports` (admin)

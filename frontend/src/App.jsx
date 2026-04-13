@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import Logo from './components/Logo';
+import Footer from './components/Footer';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +13,7 @@ import AdminPanel from './pages/AdminPanel';
 import AdminBooks from './pages/AdminBooks';
 import AuthorAnalytics from './pages/AuthorAnalytics';
 import Support from './pages/Support';
+import Contact from './pages/Contact';
 
 function App() {
   const { user, signOut } = useAuth();
@@ -18,15 +21,15 @@ function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <Link to="/" className="brand">MoBooka</Link>
+        <Logo />
         <nav className="nav-links">
           <Link to="/books">Books</Link>
           {user ? <Link to="/dashboard">Dashboard</Link> : null}
           {user?.role === 'author' ? <Link to="/upload">Upload</Link> : null}
           {user?.role === 'author' ? <Link to="/analytics">Analytics</Link> : null}
           {user ? <Link to="/purchases">Purchases</Link> : null}
-          {user?.role === 'admin' ? <Link to="/admin">Admin</Link> : null}
           <Link to="/support">Support</Link>
+          <Link to="/contact">Contact</Link>
           {user ? <button type="button" onClick={signOut}>Logout</button> : <Link to="/login">Login</Link>}
         </nav>
       </header>
@@ -45,9 +48,11 @@ function App() {
           <Route path="/admin" element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/" />} />
           <Route path="/admin/books" element={user?.role === 'admin' ? <AdminBooks /> : <Navigate to="/" />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<div>Page not found</div>} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 }

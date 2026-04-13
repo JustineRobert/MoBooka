@@ -14,6 +14,7 @@ const userRoutes = require('./routes/users');
 const adminRoutes = require('./routes/admin');
 const paymentRoutes = require('./routes/payments');
 const transactionRoutes = require('./routes/transactions');
+const contactRoutes = require('./routes/contact');
 const { errorHandler } = require('./middleware/errorHandler');
 
 dotenv.config();
@@ -46,6 +47,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
