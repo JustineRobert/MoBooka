@@ -7,6 +7,8 @@ const { initiatePayment, verifyPayment, providers } = require('../utils/mobileMo
 const { verifySignature } = require('../utils/webhookValidator');
 const asyncHandler = require('../utils/asyncHandler');
 
+const generateReceiptNumber = () => `MB-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
 const router = express.Router();
 
 router.post('/initiate', protect, asyncHandler(async (req, res) => {
@@ -35,6 +37,8 @@ router.post('/initiate', protect, asyncHandler(async (req, res) => {
     commission,
     provider: provider.toLowerCase(),
     reference,
+    receiptNumber: generateReceiptNumber(),
+    paymentData: payment,
     status: payment.success ? 'pending' : 'failed',
   });
 
@@ -55,9 +59,11 @@ router.post('/verify', protect, asyncHandler(async (req, res) => {
 
   const verification = await verifyPayment({ provider: transaction.provider, reference });
   transaction.status = verification.status;
+  transaction.paymentData = verification;
   if (verification.status === 'success') {
     transaction.paidAt = new Date();
-    transaction.downloadToken = crypto.randomBytes(24).toString('hex');
+    transaction.downloadToken = transaction.downloadToken || crypto.randomBytes(24).toString('hex');
+    transaction.receiptNumber = transaction.receiptNumber || generateReceiptNumber();
     transaction.book.sales += 1;
     transaction.book.downloads += 1;
     transaction.book.earnings += transaction.amount - transaction.commission;
@@ -106,8 +112,8 @@ router.post('/webhook', asyncHandler(async (req, res) => {
   transaction.status = status.toLowerCase() === 'success' ? 'success' : status.toLowerCase() === 'failed' ? 'failed' : transaction.status;
   if (transaction.status === 'success') {
     transaction.paidAt = new Date();
-    transaction.downloadToken = transaction.downloadToken || crypto.randomBytes(24).toString('hex');
-    transaction.book.sales += 1;
+    transaction.downloadToken = transaction.downloadToken || crypto.randomBytes(24).toString('hex');    transaction.receiptNumber = transaction.receiptNumber || generateReceiptNumber();
+    transaction.paymentData = { provider, status, amount };    transaction.book.sales += 1;
     transaction.book.downloads += 1;
     transaction.book.earnings += transaction.amount - transaction.commission;
     await transaction.book.save();

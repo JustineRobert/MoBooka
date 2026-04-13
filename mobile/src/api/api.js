@@ -18,6 +18,7 @@ export const fetchBookById = (id) => request(`/books/${id}`);
 export const initiatePurchase = (payload, token) => request('/payments/initiate', { method: 'POST', body: JSON.stringify(payload), headers: { Authorization: `Bearer ${token}` } });
 export const verifyPurchase = (payload, token) => request('/payments/verify', { method: 'POST', body: JSON.stringify(payload), headers: { Authorization: `Bearer ${token}` } });
 export const fetchTransactions = (token) => authorizedRequest('/transactions/me', token);
+export const fetchTransaction = (transactionId, token) => authorizedRequest(`/transactions/${transactionId}`, token);
 
 export const authorizedRequest = (path, token, options = {}) => {
   return request(path, { ...options, headers: { Authorization: `Bearer ${token}`, ...(options.headers || {}) } });

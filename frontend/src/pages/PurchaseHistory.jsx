@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPurchaseHistory, downloadBook } from '../api/api';
 
@@ -31,12 +32,19 @@ export default function PurchaseHistory() {
           {history.map((tx) => (
             <article key={tx._id} className="card" style={{ padding: '1rem' }}>
               <h2>{tx.book?.title}</h2>
+              <p><strong>Receipt:</strong> {tx.receiptNumber || 'Pending'}</p>
               <p><strong>Amount:</strong> ${tx.amount.toFixed(2)}</p>
               <p><strong>Status:</strong> {tx.status}</p>
               <p><strong>Provider:</strong> {tx.provider}</p>
-              {tx.status === 'success' && tx.downloadToken ? (
-                <button type="button" className="primary" onClick={() => handleDownload(tx.book._id, tx.downloadToken)}>Download book</button>
-              ) : null}
+              <p><strong>Purchased:</strong> {tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'Unknown'}</p>
+              <div className="grid" style={{ gap: '0.75rem' }}>
+                {tx.status === 'success' && tx.downloadToken ? (
+                  <button type="button" className="primary" onClick={() => handleDownload(tx.book._id, tx.downloadToken)}>Download book</button>
+                ) : null}
+                {tx.status === 'success' ? (
+                  <Link to={`/receipt/${tx._id}`} className="secondary">View receipt</Link>
+                ) : null}
+              </div>
             </article>
           ))}
         </div>

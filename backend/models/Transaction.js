@@ -8,6 +8,8 @@ const TransactionSchema = new mongoose.Schema({
   commission: { type: Number, required: true },
   provider: { type: String, enum: ['mtn', 'airtel'], required: true },
   reference: { type: String, required: true, unique: true },
+  receiptNumber: { type: String, trim: true },
+  paymentData: { type: mongoose.Schema.Types.Mixed },
   status: { type: String, enum: ['pending', 'success', 'failed'], default: 'pending' },
   paidAt: { type: Date },
   downloadToken: { type: String },

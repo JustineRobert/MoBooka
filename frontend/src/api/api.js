@@ -25,6 +25,8 @@ export const initiatePurchase = (payload, token) => authorizedRequest('/payments
 export const verifyPurchase = (payload, token) => authorizedRequest('/payments/verify', token, { method: 'POST', body: JSON.stringify(payload) });
 export const getPaymentProviders = (token) => authorizedRequest('/payments/providers', token);
 export const getPurchaseHistory = (token) => authorizedRequest('/transactions/me', token);
+export const getTransaction = (transactionId, token) => authorizedRequest(`/transactions/${transactionId}`, token);
+export const getReceipt = (transactionId, token) => authorizedRequest(`/transactions/receipt/${transactionId}`, token);
 export const downloadBook = (bookId, tokenValue, token) => authorizedRequest(`/transactions/download/${bookId}?token=${encodeURIComponent(tokenValue)}`, token);
 export const getAdminBooks = (token) => authorizedRequest('/admin/books?status=pending', token);
 export const updateBookStatus = (bookId, status, token) => authorizedRequest(`/admin/books/${bookId}/status`, token, { method: 'PUT', body: JSON.stringify({ status }) });

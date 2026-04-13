@@ -6,6 +6,7 @@ import SignupScreen from './src/screens/SignupScreen';
 import BookListScreen from './src/screens/BookListScreen';
 import BookDetailScreen from './src/screens/BookDetailScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import ReceiptScreen from './src/screens/ReceiptScreen';
 import { StatusBar } from 'expo-status-bar';
 
 const Stack = createNativeStackNavigator();
@@ -20,6 +21,7 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Login' }} />
           <Stack.Screen name="Signup" component={SignupScreen} options={{ title: 'Sign up' }} />
           <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Dashboard' }} />
+          <Stack.Screen name="Receipt" component={ReceiptScreen} options={{ title: 'Receipt' }} />
         </Stack.Navigator>
       </NavigationContainer>
       <StatusBar style="light" />

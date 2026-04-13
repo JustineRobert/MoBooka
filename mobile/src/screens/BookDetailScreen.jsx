@@ -11,6 +11,8 @@ export default function BookDetailScreen({ route, navigation }) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [purchaseMessage, setPurchaseMessage] = useState('');
+  const [transaction, setTransaction] = useState(null);
+  const [downloadLink, setDownloadLink] = useState('');
 
   useEffect(() => {
     const loadBook = async () => {
@@ -41,8 +43,12 @@ export default function BookDetailScreen({ route, navigation }) {
       const initiateResult = await initiatePurchase({ bookId, provider, phone }, token);
       setPurchaseMessage('Payment initiated, verifying...');
       const verifyResult = await verifyPurchase({ reference: initiateResult.reference }, token);
-      if (verifyResult.transaction.status === 'success') {
+      setTransaction(verifyResult.transaction || null);
+      if (verifyResult.transaction?.status === 'success') {
         setPurchaseMessage('Purchase successful! You can now download the book.');
+        if (verifyResult.transaction.downloadToken) {
+          setDownloadLink(verifyResult.transaction.downloadToken);
+        }
       } else {
         setPurchaseMessage('Purchase pending or failed. Please check again later.');
       }
@@ -87,6 +93,16 @@ export default function BookDetailScreen({ route, navigation }) {
           </View>
           <Button title="Purchase book" onPress={handleBuy} />
           {purchaseMessage ? <Text style={styles.message}>{purchaseMessage}</Text> : null}
+          {transaction?.receiptNumber ? <Text style={styles.receiptInfo}>Receipt: {transaction.receiptNumber}</Text> : null}
+          {transaction?.status ? <Text style={styles.receiptInfo}>Status: {transaction.status}</Text> : null}
+          {transaction?.status === 'success' ? (
+            <View style={styles.receiptButton}>
+              <Button
+                title="View receipt"
+                onPress={() => navigation.navigate('Receipt', { transactionId: transaction._id })}
+              />
+            </View>
+          ) : null}
         </>
       ) : (
         <Text style={styles.freeText}>This book is free. Download it from the web store once logged in.</Text>
@@ -106,5 +122,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 12 },
   providerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   message: { marginTop: 16, color: '#333' },
+  receiptInfo: { marginTop: 10, color: '#333', fontWeight: '600' },
+  receiptButton: { marginTop: 16 },
   freeText: { marginTop: 20, color: '#555', fontStyle: 'italic' },
 });

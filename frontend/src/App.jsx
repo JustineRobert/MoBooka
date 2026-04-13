@@ -14,6 +14,7 @@ import AdminBooks from './pages/AdminBooks';
 import AuthorAnalytics from './pages/AuthorAnalytics';
 import Support from './pages/Support';
 import Contact from './pages/Contact';
+import Receipt from './pages/Receipt';
 
 function App() {
   const { user, signOut } = useAuth();
@@ -49,6 +50,7 @@ function App() {
           <Route path="/admin/books" element={user?.role === 'admin' ? <AdminBooks /> : <Navigate to="/" />} />
           <Route path="/support" element={<Support />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/receipt/:id" element={user ? <Receipt /> : <Navigate to="/login" />} />
           <Route path="*" element={<div>Page not found</div>} />
         </Routes>
       </main>

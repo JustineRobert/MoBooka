@@ -1,0 +1,16 @@
+{
+  "name": "mobooka",
+  "private": true,
+  "workspaces": ["backend", "frontend", "mobile"],
+  "scripts": {
+    "install:all": "npm install",
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev:mobile": "npm --workspace mobile start",
+    "start:backend": "npm --workspace backend start",
+    "build:frontend": "npm --workspace frontend run build",
+    "test:backend": "npm --workspace backend test",
+    "test:frontend": "npm --workspace frontend test",
+    "test": "npm run test:backend"
+  }
+}

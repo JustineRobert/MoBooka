@@ -23,6 +23,42 @@ router.get('/author/me', asyncHandler(async (req, res) => {
   res.json({ sales, totalRevenue });
 }));
 
+router.get('/receipt/:id', asyncHandler(async (req, res) => {
+  const transaction = await Transaction.findById(req.params.id)
+    .populate('book', 'title category price coverUrl')
+    .populate('buyer', 'name email phone')
+    .populate('author', 'name email');
+
+  if (!transaction) {
+    return res.status(404).json({ message: 'Transaction not found' });
+  }
+
+  const isOwner = transaction.buyer._id.equals(req.user._id) || transaction.author._id.equals(req.user._id);
+  if (!isOwner && req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+
+  res.json({ transaction });
+}));
+
+router.get('/:id', asyncHandler(async (req, res) => {
+  const transaction = await Transaction.findById(req.params.id)
+    .populate('book', 'title category price coverUrl')
+    .populate('buyer', 'name email phone')
+    .populate('author', 'name email');
+
+  if (!transaction) {
+    return res.status(404).json({ message: 'Transaction not found' });
+  }
+
+  const isOwner = transaction.buyer._id.equals(req.user._id) || transaction.author._id.equals(req.user._id);
+  if (!isOwner && req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+
+  res.json({ transaction });
+}));
+
 router.get('/download/:bookId', asyncHandler(async (req, res) => {
   const { token } = req.query;
   const { bookId } = req.params;

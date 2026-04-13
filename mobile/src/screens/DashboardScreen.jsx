@@ -41,8 +41,16 @@ export default function DashboardScreen({ navigation }) {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.bookTitle}>{item.book.title}</Text>
+              <Text>Receipt: {item.receiptNumber || 'Pending'}</Text>
               <Text>Status: {item.status}</Text>
               <Text>Amount: UGX {item.amount.toFixed(2)}</Text>
+              <Text>Purchased: {new Date(item.createdAt).toLocaleString()}</Text>
+              {item.status === 'success' && (
+                <Button
+                  title="View receipt"
+                  onPress={() => navigation.navigate('Receipt', { transactionId: item._id })}
+                />
+              )}
             </View>
           )}
           ListEmptyComponent={<Text style={styles.empty}>No purchase history yet.</Text>}

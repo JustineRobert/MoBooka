@@ -14,6 +14,12 @@ MoBooka is a MERN-stack digital book marketplace designed for African mobile-fir
 - `frontend/` - React app, auth state, browsing, dashboards
 
 ## Run locally
+### Monorepo workspace
+1. `npm install`
+2. `npm run dev:backend`
+3. `npm run dev:frontend`
+4. `npm run dev:mobile`
+
 ### Backend
 1. `cd backend`
 2. `npm install`

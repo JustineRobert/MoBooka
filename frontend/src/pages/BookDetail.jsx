@@ -80,9 +80,14 @@ export default function BookDetail() {
             <button type="submit" className="primary">Initiate payment</button>
           </form>
           {reference ? <p>Payment reference: <strong>{reference}</strong></p> : null}
+          {transaction?.receiptNumber ? <p>Receipt number: <strong>{transaction.receiptNumber}</strong></p> : null}
+          {transaction?.status ? <p>Status: <strong>{transaction.status}</strong></p> : null}
           {reference && status === 'pending' ? <button type="button" onClick={handleVerify} className="secondary">Verify payment</button> : null}
           {downloadLink ? (
             <p><a href={downloadLink} className="primary">Download your book</a></p>
+          ) : null}
+          {transaction?.status === 'success' ? (
+            <p><Link to={`/receipt/${transaction._id}`} className="secondary">View receipt</Link></p>
           ) : null}
           {error && <p style={{ color: '#ff6b6b' }}>{error}</p>}
         </div>
