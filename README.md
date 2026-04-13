@@ -47,6 +47,9 @@ Supply `--endpoint` to target a custom callback URL.
 - Website support page: `/support`
 - Contact form endpoint: `POST /api/contact`
 
+## Developer documentation
+- `DEVELOPER_GUIDE.md` — full setup and contribution guide for backend, frontend, and mobile developers
+
 ## Key APIs
 - `POST /api/auth/register`
 - `POST /api/auth/login`
