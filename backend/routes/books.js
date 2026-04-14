@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const Book = require('../models/Book');
+const Branch = require('../models/Branch');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/roles');
 const { uploadFile } = require('../utils/cloudStorage');
@@ -23,6 +24,12 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ count: books.length, books });
 }));
 
+router.get('/barcode/:barcode', asyncHandler(async (req, res) => {
+  const book = await Book.findOne({ barcode: req.params.barcode }).populate('author', 'name email');
+  if (!book) return res.status(404).json({ message: 'Book not found' });
+  res.json(book);
+}));
+
 router.get('/:id', asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id).populate('author', 'name email');
   if (!book) return res.status(404).json({ message: 'Book not found' });
@@ -30,7 +37,9 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 router.post('/', protect, authorize('author', 'admin'), upload.fields([{ name: 'cover' }, { name: 'file' }, { name: 'sample' }]), asyncHandler(async (req, res) => {
-  const { title, authors, category, description, tags, price, status } = req.body;
+  const { title, authors, category, description, tags, price, status, currency, taxRate, barcode, stock, branchCode } = req.body;
+  const branch = branchCode ? await Branch.findOne({ code: branchCode.toUpperCase() }) : null;
+
   const bookData = {
     title,
     authors: Array.isArray(authors) ? authors : authors.toString().split(',').map((item) => item.trim()),
@@ -38,6 +47,11 @@ router.post('/', protect, authorize('author', 'admin'), upload.fields([{ name: '
     description,
     tags: tags ? tags.toString().split(',').map((tag) => tag.trim()) : [],
     price: Number(price) || 0,
+    currency: currency || 'USD',
+    taxRate: Number(taxRate) || 0,
+    barcode: barcode || undefined,
+    stock: Number(stock) || 0,
+    branch: branch?._id,
     status: status || 'draft',
     author: req.user._id,
   };
@@ -66,6 +80,10 @@ router.put('/:id', protect, authorize('author', 'admin'), upload.fields([{ name:
   const updates = req.body;
   if (updates.authors) updates.authors = updates.authors.toString().split(',').map((item) => item.trim());
   if (updates.tags) updates.tags = updates.tags.toString().split(',').map((tag) => tag.trim());
+  if (updates.branchCode) {
+    const branch = await Branch.findOne({ code: updates.branchCode.toUpperCase() });
+    if (branch) updates.branch = branch._id;
+  }
 
   Object.assign(book, updates);
 

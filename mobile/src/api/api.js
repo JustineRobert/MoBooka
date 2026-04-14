@@ -15,7 +15,9 @@ export const login = (payload) => request('/auth/login', { method: 'POST', body:
 export const register = (payload) => request('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
 export const fetchBooks = () => request('/books');
 export const fetchBookById = (id) => request(`/books/${id}`);
+export const fetchBookByBarcode = (barcode) => request(`/books/barcode/${encodeURIComponent(barcode)}`);
 export const initiatePurchase = (payload, token) => request('/payments/initiate', { method: 'POST', body: JSON.stringify(payload), headers: { Authorization: `Bearer ${token}` } });
+export const initiateOfflineSale = (payload, token) => request('/payments/offline', { method: 'POST', body: JSON.stringify(payload), headers: { Authorization: `Bearer ${token}` } });
 export const verifyPurchase = (payload, token) => request('/payments/verify', { method: 'POST', body: JSON.stringify(payload), headers: { Authorization: `Bearer ${token}` } });
 export const fetchTransactions = (token) => authorizedRequest('/transactions/me', token);
 export const fetchTransaction = (transactionId, token) => authorizedRequest(`/transactions/${transactionId}`, token);

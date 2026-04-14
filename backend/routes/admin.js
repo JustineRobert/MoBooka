@@ -3,6 +3,7 @@ const { check } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/roles');
 const Book = require('../models/Book');
+const Branch = require('../models/Branch');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const validate = require('../middleware/validate');
@@ -43,6 +44,56 @@ router.get('/transactions', asyncHandler(async (req, res) => {
   const transactions = await Transaction.find().sort({ createdAt: -1 }).populate('book buyer author', 'title name email');
   res.json({ count: transactions.length, transactions });
 }));
+
+router.get('/branches', asyncHandler(async (req, res) => {
+  const branches = await Branch.find().sort({ createdAt: -1 });
+  res.json({ count: branches.length, branches });
+}));
+
+router.post(
+  '/branches',
+  [
+    check('name').notEmpty().withMessage('Name is required'),
+    check('code').notEmpty().withMessage('Code is required'),
+  ],
+  validate,
+  asyncHandler(async (req, res) => {
+    const { name, code, address, country, currency, taxRate, active } = req.body;
+    const existing = await Branch.findOne({ code: code.toUpperCase() });
+    if (existing) {
+      return res.status(409).json({ message: 'Branch code already exists' });
+    }
+    const branch = await Branch.create({
+      name,
+      code: code.toUpperCase(),
+      address,
+      country,
+      currency,
+      taxRate: Number(taxRate) || 0,
+      active: active !== false,
+    });
+    res.status(201).json(branch);
+  })
+);
+
+router.put(
+  '/branches/:id',
+  asyncHandler(async (req, res) => {
+    const branch = await Branch.findById(req.params.id);
+    if (!branch) return res.status(404).json({ message: 'Branch not found' });
+    Object.assign(branch, {
+      name: req.body.name || branch.name,
+      code: req.body.code ? req.body.code.toUpperCase() : branch.code,
+      address: req.body.address || branch.address,
+      country: req.body.country || branch.country,
+      currency: req.body.currency || branch.currency,
+      taxRate: req.body.taxRate !== undefined ? Number(req.body.taxRate) : branch.taxRate,
+      active: req.body.active !== undefined ? Boolean(req.body.active) : branch.active,
+    });
+    await branch.save();
+    res.json(branch);
+  })
+);
 
 router.put(
   '/books/:id/status',

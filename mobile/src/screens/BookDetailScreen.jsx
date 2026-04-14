@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Button, ActivityIndicator, Alert, StyleSheet, ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Network from 'expo-network';
 import { useAuth } from '../context/AuthContext';
-import { fetchBookById, initiatePurchase, verifyPurchase } from '../api/api';
+import { fetchBookById, initiatePurchase, initiateOfflineSale, verifyPurchase } from '../api/api';
 
 export default function BookDetailScreen({ route, navigation }) {
   const { bookId } = route.params || {};
@@ -13,6 +15,7 @@ export default function BookDetailScreen({ route, navigation }) {
   const [purchaseMessage, setPurchaseMessage] = useState('');
   const [transaction, setTransaction] = useState(null);
   const [downloadLink, setDownloadLink] = useState('');
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     const loadBook = async () => {
@@ -20,6 +23,8 @@ export default function BookDetailScreen({ route, navigation }) {
       try {
         const data = await fetchBookById(bookId);
         setBook(data);
+        const state = await Network.getNetworkStateAsync();
+        setOffline(!(state.isConnected && state.isInternetReachable));
       } catch (err) {
         Alert.alert('Fetch error', err.message, [{ text: 'OK', onPress: () => navigation.goBack() }]);
       } finally {
@@ -38,6 +43,16 @@ export default function BookDetailScreen({ route, navigation }) {
       Alert.alert('Validation', 'Please enter your phone number.');
       return;
     }
+
+    if (offline) {
+      const queued = JSON.parse(await AsyncStorage.getItem('mobooka_offline_queue') || '[]');
+      queued.push({ bookId, phone, provider, createdAt: new Date().toISOString() });
+      await AsyncStorage.setItem('mobooka_offline_queue', JSON.stringify(queued));
+      Alert.alert('Queued offline', 'Your purchase request was saved locally and will sync when you are back online.');
+      setPurchaseMessage('Offline purchase queued.');
+      return;
+    }
+
     setPurchaseMessage('Initiating payment...');
     try {
       const initiateResult = await initiatePurchase({ bookId, provider, phone }, token);
@@ -55,6 +70,32 @@ export default function BookDetailScreen({ route, navigation }) {
     } catch (err) {
       Alert.alert('Purchase error', err.message);
       setPurchaseMessage('');
+    }
+  };
+
+  const handleSyncQueue = async () => {
+    try {
+      const state = await Network.getNetworkStateAsync();
+      if (!state.isConnected || !state.isInternetReachable) {
+        Alert.alert('Still offline', 'Please connect to the internet before syncing queued purchases.');
+        return;
+      }
+
+      const queue = JSON.parse(await AsyncStorage.getItem('mobooka_offline_queue') || '[]');
+      if (queue.length === 0) {
+        Alert.alert('Nothing to sync', 'There are no queued offline purchases.');
+        return;
+      }
+
+      const results = [];
+      for (const item of queue) {
+        const response = await initiateOfflineSale({ bookId: item.bookId, phone: item.phone, branchCode: item.branchCode }, token);
+        results.push(response.transaction || response);
+      }
+      await AsyncStorage.removeItem('mobooka_offline_queue');
+      Alert.alert('Sync complete', `Synced ${results.length} offline purchase(s).`);
+    } catch (err) {
+      Alert.alert('Sync failed', err.message);
     }
   };
 
@@ -91,7 +132,12 @@ export default function BookDetailScreen({ route, navigation }) {
             <Button title={provider === 'mtn' ? 'MTN selected' : 'Select MTN'} onPress={() => setProvider('mtn')} />
             <Button title={provider === 'airtel' ? 'Airtel selected' : 'Select Airtel'} onPress={() => setProvider('airtel')} />
           </View>
-          <Button title="Purchase book" onPress={handleBuy} />
+          <Button title={offline ? 'Queue offline purchase' : 'Purchase book'} onPress={handleBuy} />
+          {offline && (
+            <View style={{ marginTop: 12 }}>
+              <Button title="Sync queued purchases" onPress={handleSyncQueue} />
+            </View>
+          )}
           {purchaseMessage ? <Text style={styles.message}>{purchaseMessage}</Text> : null}
           {transaction?.receiptNumber ? <Text style={styles.receiptInfo}>Receipt: {transaction.receiptNumber}</Text> : null}
           {transaction?.status ? <Text style={styles.receiptInfo}>Status: {transaction.status}</Text> : null}

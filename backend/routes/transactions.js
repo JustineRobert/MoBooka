@@ -18,9 +18,51 @@ router.get('/me', asyncHandler(async (req, res) => {
 router.get('/author/me', asyncHandler(async (req, res) => {
   const sales = await Transaction.find({ author: req.user._id, status: 'success' })
     .populate('book', 'title price')
+    .populate('branch', 'name code')
     .sort({ createdAt: -1 });
   const totalRevenue = sales.reduce((sum, tx) => sum + tx.amount - tx.commission, 0);
-  res.json({ sales, totalRevenue });
+  const branchSummary = sales.reduce((acc, tx) => {
+    const key = tx.branch?.code || 'MAIN';
+    acc[key] = (acc[key] || 0) + (tx.amount - tx.commission);
+    return acc;
+  }, {});
+  res.json({ sales, totalRevenue, branchSummary });
+}));
+
+router.get('/forecast', asyncHandler(async (req, res) => {
+  const periodStart = new Date();
+  periodStart.setMonth(periodStart.getMonth() - 3);
+  const sales = await Transaction.find({
+    author: req.user._id,
+    status: 'success',
+    createdAt: { $gte: periodStart },
+  }).populate('book', 'title category');
+
+  const grouped = sales.reduce((acc, tx) => {
+    const category = tx.book?.category || 'Uncategorized';
+    if (!acc[category]) acc[category] = { count: 0, revenue: 0, amount: 0 };
+    acc[category].count += 1;
+    acc[category].revenue += tx.amount - tx.commission;
+    acc[category].amount += tx.amount;
+    return acc;
+  }, {});
+
+  const demandByCategory = Object.entries(grouped).map(([category, stats]) => ({
+    category,
+    sales: stats.count,
+    revenue: stats.revenue,
+    forecast: Math.round(stats.count * 1.15),
+  }));
+
+  const totalSales = sales.length;
+  const totalRevenue = sales.reduce((sum, tx) => sum + tx.amount - tx.commission, 0);
+
+  res.json({
+    totalSales,
+    totalRevenue,
+    demandByCategory,
+    forecastHint: `Forecast suggests ${Math.max(totalSales, 0)} sales next month based on recent trends.`,
+  });
 }));
 
 router.get('/receipt/:id', asyncHandler(async (req, res) => {

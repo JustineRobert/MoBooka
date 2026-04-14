@@ -1,9 +1,13 @@
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const { scheduleAnalyticsAggregation } = require('./utils/analyticsJob');
 const app = require('./app');
 
 dotenv.config();
 connectDB();
+if (process.env.ANALYTICS_JOB_ENABLED !== 'false') {
+  scheduleAnalyticsAggregation();
+}
 
 const PORT = process.env.PORT || 5000;
 

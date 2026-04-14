@@ -27,6 +27,7 @@ export default function Dashboard() {
             <h2>Admin dashboard</h2>
             <p>Approve uploads, manage users, and monitor platform revenue.</p>
             <Link to="/admin/books" className="primary">Review pending books</Link>
+            <Link to="/admin/branches" className="secondary">Manage branches & taxes</Link>
           </section>
         )}
       </div>

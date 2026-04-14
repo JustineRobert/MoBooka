@@ -2,9 +2,11 @@ const express = require('express');
 const crypto = require('crypto');
 const { protect } = require('../middleware/auth');
 const Book = require('../models/Book');
+const Branch = require('../models/Branch');
 const Transaction = require('../models/Transaction');
 const { initiatePayment, verifyPayment, providers } = require('../utils/mobileMoneyGateway');
 const { verifySignature } = require('../utils/webhookValidator');
+const { sendEmail, sendWhatsApp } = require('../utils/notifications');
 const asyncHandler = require('../utils/asyncHandler');
 
 const generateReceiptNumber = () => `MB-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
@@ -29,12 +31,17 @@ router.post('/initiate', protect, asyncHandler(async (req, res) => {
   const payment = await initiatePayment({ provider, phone, amount: book.price, reference });
   const commissionPercent = Number(process.env.PLATFORM_COMMISSION_PERCENT || 15);
   const commission = (book.price * commissionPercent) / 100;
+  const taxAmount = (book.price * (book.taxRate || 0)) / 100;
   const transaction = await Transaction.create({
     book: book._id,
     buyer: req.user._id,
     author: book.author._id,
     amount: book.price,
     commission,
+    taxRate: book.taxRate || 0,
+    taxAmount,
+    currency: book.currency || 'USD',
+    branch: book.branch,
     provider: provider.toLowerCase(),
     reference,
     receiptNumber: generateReceiptNumber(),
@@ -47,6 +54,62 @@ router.post('/initiate', protect, asyncHandler(async (req, res) => {
   }
 
   res.status(201).json({ message: 'Payment initiated', reference, transactionId: transaction._id, payment });
+}));
+
+router.post('/offline', protect, asyncHandler(async (req, res) => {
+  const { bookId, phone, branchCode } = req.body;
+  const book = await Book.findById(bookId).populate('author');
+  if (!book || book.status !== 'published') {
+    return res.status(404).json({ message: 'Book not available for offline sale' });
+  }
+
+  const branch = branchCode ? await Branch.findOne({ code: branchCode }) : null;
+  const reference = crypto.randomBytes(12).toString('hex');
+  const commissionPercent = Number(process.env.PLATFORM_COMMISSION_PERCENT || 15);
+  const commission = (book.price * commissionPercent) / 100;
+  const taxAmount = (book.price * (book.taxRate || 0)) / 100;
+
+  const transaction = await Transaction.create({
+    book: book._id,
+    buyer: req.user._id,
+    author: book.author._id,
+    amount: book.price,
+    commission,
+    taxRate: book.taxRate || 0,
+    taxAmount,
+    currency: book.currency || 'USD',
+    branch: branch?._id,
+    posSale: true,
+    offline: true,
+    saleChannel: 'pos',
+    provider: 'pos',
+    reference,
+    receiptNumber: generateReceiptNumber(),
+    paymentData: { method: 'offline', phone },
+    status: 'success',
+    paidAt: new Date(),
+  });
+
+  book.sales += 1;
+  book.downloads += 1;
+  book.earnings += transaction.amount - transaction.commission;
+  await book.save();
+
+  if (req.user.phone) {
+    await sendWhatsApp({
+      to: req.user.phone,
+      text: `Your offline POS purchase for ${book.title} is complete. Receipt #${transaction.receiptNumber}.`,
+    });
+  }
+
+  await sendEmail({
+    to: req.user.email,
+    subject: 'Offline sale confirmation',
+    text: `Your offline POS purchase for ${book.title} is confirmed. Receipt #${transaction.receiptNumber}.`,
+    html: `<p>Your offline POS purchase for <strong>${book.title}</strong> is confirmed.</p><p>Receipt #${transaction.receiptNumber}</p>`,
+  });
+
+  res.status(201).json({ message: 'Offline POS sale recorded', transaction });
 }));
 
 router.post('/verify', protect, asyncHandler(async (req, res) => {
@@ -68,6 +131,20 @@ router.post('/verify', protect, asyncHandler(async (req, res) => {
     transaction.book.downloads += 1;
     transaction.book.earnings += transaction.amount - transaction.commission;
     await transaction.book.save();
+
+    if (transaction.buyer?.phone) {
+      await sendWhatsApp({
+        to: transaction.buyer.phone,
+        text: `Your payment for ${transaction.book.title} is confirmed. Receipt #${transaction.receiptNumber}.`,
+      });
+    }
+
+    await sendEmail({
+      to: transaction.buyer?.email,
+      subject: 'Purchase confirmed',
+      text: `Your purchase of ${transaction.book.title} is complete. Receipt #${transaction.receiptNumber}.`,
+      html: `<p>Your purchase of <strong>${transaction.book.title}</strong> is complete.</p><p>Receipt #${transaction.receiptNumber}</p>`,
+    });
   }
   await transaction.save();
   res.json({ verification, transaction });
@@ -112,11 +189,27 @@ router.post('/webhook', asyncHandler(async (req, res) => {
   transaction.status = status.toLowerCase() === 'success' ? 'success' : status.toLowerCase() === 'failed' ? 'failed' : transaction.status;
   if (transaction.status === 'success') {
     transaction.paidAt = new Date();
-    transaction.downloadToken = transaction.downloadToken || crypto.randomBytes(24).toString('hex');    transaction.receiptNumber = transaction.receiptNumber || generateReceiptNumber();
-    transaction.paymentData = { provider, status, amount };    transaction.book.sales += 1;
+    transaction.downloadToken = transaction.downloadToken || crypto.randomBytes(24).toString('hex');
+    transaction.receiptNumber = transaction.receiptNumber || generateReceiptNumber();
+    transaction.paymentData = { provider, status, amount };
+    transaction.book.sales += 1;
     transaction.book.downloads += 1;
     transaction.book.earnings += transaction.amount - transaction.commission;
     await transaction.book.save();
+
+    if (transaction.buyer?.phone) {
+      await sendWhatsApp({
+        to: transaction.buyer.phone,
+        text: `Your payment for ${transaction.book.title} is confirmed. Receipt #${transaction.receiptNumber}.`,
+      });
+    }
+
+    await sendEmail({
+      to: transaction.buyer?.email,
+      subject: 'Purchase confirmed',
+      text: `Your purchase of ${transaction.book.title} is complete. Receipt #${transaction.receiptNumber}.`,
+      html: `<p>Your purchase of <strong>${transaction.book.title}</strong> is complete.</p><p>Receipt #${transaction.receiptNumber}</p>`,
+    });
   }
   await transaction.save();
 

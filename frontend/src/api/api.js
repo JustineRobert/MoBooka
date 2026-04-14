@@ -20,6 +20,7 @@ export const login = (payload) => request('/auth/login', { method: 'POST', body:
 export const register = (payload) => request('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
 export const fetchBooks = () => request('/books');
 export const fetchBookById = (id) => request(`/books/${id}`);
+export const fetchBookByBarcode = (barcode) => request(`/books/barcode/${encodeURIComponent(barcode)}`);
 export const createBook = (formData, token) => authorizedRequest('/books', token, { method: 'POST', body: formData });
 export const initiatePurchase = (payload, token) => authorizedRequest('/payments/initiate', token, { method: 'POST', body: JSON.stringify(payload) });
 export const verifyPurchase = (payload, token) => authorizedRequest('/payments/verify', token, { method: 'POST', body: JSON.stringify(payload) });
@@ -30,7 +31,11 @@ export const getReceipt = (transactionId, token) => authorizedRequest(`/transact
 export const downloadBook = (bookId, tokenValue, token) => authorizedRequest(`/transactions/download/${bookId}?token=${encodeURIComponent(tokenValue)}`, token);
 export const getAdminBooks = (token) => authorizedRequest('/admin/books?status=pending', token);
 export const updateBookStatus = (bookId, status, token) => authorizedRequest(`/admin/books/${bookId}/status`, token, { method: 'PUT', body: JSON.stringify({ status }) });
+export const getAdminBranches = (token) => authorizedRequest('/admin/branches', token);
+export const createAdminBranch = (payload, token) => authorizedRequest('/admin/branches', token, { method: 'POST', body: JSON.stringify(payload) });
+export const updateAdminBranch = (branchId, payload, token) => authorizedRequest(`/admin/branches/${branchId}`, token, { method: 'PUT', body: JSON.stringify(payload) });
 export const getAuthorAnalytics = (token) => authorizedRequest('/transactions/author/me', token);
+export const getAnalyticsForecast = (token) => authorizedRequest('/transactions/forecast', token);
 
 export const authorizedRequest = async (path, token, options = {}) => {
   const headers = { Authorization: `Bearer ${token}`, ...(options.headers || {}) };

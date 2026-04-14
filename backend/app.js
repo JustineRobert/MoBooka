@@ -21,7 +21,6 @@ const contactRoutes = require('./routes/contact');
 const { errorHandler } = require('./middleware/errorHandler');
 
 dotenv.config();
-connectDB();
 
 const app = express();
 

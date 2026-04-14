@@ -11,10 +11,12 @@ import AuthorUpload from './pages/AuthorUpload';
 import PurchaseHistory from './pages/PurchaseHistory';
 import AdminPanel from './pages/AdminPanel';
 import AdminBooks from './pages/AdminBooks';
+import AdminBranches from './pages/AdminBranches';
 import AuthorAnalytics from './pages/AuthorAnalytics';
 import Support from './pages/Support';
 import Contact from './pages/Contact';
 import Receipt from './pages/Receipt';
+import BarcodeScanner from './pages/BarcodeScanner';
 
 function App() {
   const { user, signOut } = useAuth();
@@ -28,6 +30,7 @@ function App() {
           {user ? <Link to="/dashboard">Dashboard</Link> : null}
           {user?.role === 'author' ? <Link to="/upload">Upload</Link> : null}
           {user?.role === 'author' ? <Link to="/analytics">Analytics</Link> : null}
+          {user?.role === 'admin' ? <Link to="/admin">Admin</Link> : null}
           {user ? <Link to="/purchases">Purchases</Link> : null}
           <Link to="/support">Support</Link>
           <Link to="/contact">Contact</Link>
@@ -48,6 +51,8 @@ function App() {
           <Route path="/purchases" element={user ? <PurchaseHistory /> : <Navigate to="/login" />} />
           <Route path="/admin" element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/" />} />
           <Route path="/admin/books" element={user?.role === 'admin' ? <AdminBooks /> : <Navigate to="/" />} />
+          <Route path="/admin/branches" element={user?.role === 'admin' ? <AdminBranches /> : <Navigate to="/" />} />
+          <Route path="/scan" element={user ? <BarcodeScanner /> : <Navigate to="/login" />} />
           <Route path="/support" element={<Support />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/receipt/:id" element={user ? <Receipt /> : <Navigate to="/login" />} />

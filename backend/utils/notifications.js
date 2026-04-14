@@ -24,4 +24,39 @@ const sendEmail = async ({ to, subject, text, html }) => {
   });
 };
 
-module.exports = { sendEmail };
+const sendWhatsApp = async ({ to, text }) => {
+  const token = process.env.WHATSAPP_API_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const apiUrl = process.env.WHATSAPP_API_URL || (phoneId ? `https://graph.facebook.com/v17.0/${phoneId}/messages` : '');
+  if (!apiUrl || !token || !to) {
+    console.log('[Notification] WhatsApp not configured or destination missing, skipping:', to);
+    return;
+  }
+
+  const payload = {
+    messaging_product: 'whatsapp',
+    to,
+    type: 'text',
+    text: { body: text },
+  };
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.warn('[Notification] WhatsApp send failed', response.status, body);
+    }
+  } catch (err) {
+    console.warn('[Notification] WhatsApp send error', err.message);
+  }
+};
+
+module.exports = { sendEmail, sendWhatsApp };

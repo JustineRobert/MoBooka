@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, ActivityIndicator, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Button, ActivityIndicator, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { fetchTransaction } from '../api/api';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 
 export default function ReceiptScreen({ route, navigation }) {
   const { transactionId } = route.params || {};
@@ -50,6 +53,86 @@ export default function ReceiptScreen({ route, navigation }) {
     );
   }
 
+  const buildReceiptHtml = () => {
+    return `
+      <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px;">
+          <h1>MoBooka Receipt</h1>
+          <p><strong>Receipt #: </strong>${receipt.receiptNumber || 'N/A'}</p>
+          <p><strong>Reference: </strong>${receipt.reference}</p>
+          <p><strong>Status: </strong>${receipt.status}</p>
+          <p><strong>Provider: </strong>${receipt.provider}</p>
+          <p><strong>Amount: </strong>UGX ${receipt.amount.toFixed(2)}</p>
+          <p><strong>Commission: </strong>UGX ${receipt.commission.toFixed(2)}</p>
+          <p><strong>Paid at: </strong>${receipt.paidAt ? new Date(receipt.paidAt).toLocaleString() : 'Pending'}</p>
+          <h2>Book</h2>
+          <p><strong>Title: </strong>${receipt.book?.title || 'N/A'}</p>
+          <p><strong>Category: </strong>${receipt.book?.category || 'N/A'}</p>
+          <p><strong>Price: </strong>UGX ${receipt.book?.price?.toFixed(2) || '0.00'}</p>
+          <h2>Buyer</h2>
+          <p><strong>Name: </strong>${receipt.buyer?.name || 'N/A'}</p>
+          <p><strong>Email: </strong>${receipt.buyer?.email || 'N/A'}</p>
+          <p><strong>Phone: </strong>${receipt.buyer?.phone || 'N/A'}</p>
+        </body>
+      </html>
+    `;
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const html = buildReceiptHtml();
+      const { uri } = await Print.printToFileAsync({ html });
+      if (!uri) throw new Error('Could not create receipt PDF');
+
+      const available = await Sharing.isAvailableAsync();
+      if (!available) {
+        Alert.alert('Export unavailable', 'Sharing is not available on this device.');
+        return;
+      }
+
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Share MoBooka receipt',
+      });
+    } catch (err) {
+      Alert.alert('Export failed', err.message);
+    }
+  };
+
+  const handlePreviewPDF = async () => {
+    try {
+      const html = buildReceiptHtml();
+      await Print.printAsync({ html });
+    } catch (err) {
+      Alert.alert('Preview failed', err.message);
+    }
+  };
+
+  const handleExportJSON = async () => {
+    try {
+      const jsonContent = JSON.stringify(receipt, null, 2);
+      const fileName = `receipt-${receipt._id || receipt.receiptNumber || 'export'}.json`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, jsonContent, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const available = await Sharing.isAvailableAsync();
+      if (!available) {
+        Alert.alert('Export unavailable', 'Sharing is not available on this device.');
+        return;
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/json',
+        dialogTitle: 'Share receipt JSON',
+      });
+    } catch (err) {
+      Alert.alert('JSON export failed', err.message);
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Receipt</Text>
@@ -78,6 +161,12 @@ export default function ReceiptScreen({ route, navigation }) {
         <Text>Phone: {receipt.buyer?.phone || 'Not provided'}</Text>
       </View>
 
+      <Button title="Preview receipt PDF" onPress={handlePreviewPDF} />
+      <View style={{ height: 12 }} />
+      <Button title="Export receipt PDF" onPress={handleExportPDF} />
+      <View style={{ height: 12 }} />
+      <Button title="Export receipt as JSON" onPress={handleExportJSON} />
+      <View style={{ height: 12 }} />
       <Button title="Back to dashboard" onPress={() => navigation.navigate('Dashboard')} />
     </ScrollView>
   );
